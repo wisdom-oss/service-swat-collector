@@ -133,6 +133,7 @@ async fn handle_location(
         .timestamp(timestamp)
         .field("current", current_json)
         .field("forecasts", forecasts_json)
+        .tag("id", location.id.to_string())
         .tag("name", location.name)
         .tag("lat", location.lat.to_string())
         .tag("lon", location.lon.to_string())

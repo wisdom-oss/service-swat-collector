@@ -1,79 +1,161 @@
 [[locations]]
-lat = 53.4574056
-lon = 7.5346991
-name = "Wasserwerk Aurich"
+id = 1
+lat = "52.9109818816186"
+lon = "8.23505277402053"
+name = "WW Großenkneten"
 
 [[locations]]
-lat = 53.7280147
-lon = 7.3846392
-name = "Wasserwerk Baltrum"
+id = 2
+lat = "53.4963873922773"
+lon = "7.30049794797503"
+name = "WW Marienhafe"
 
 [[locations]]
-lat = 52.9105001
-lon = 8.237373
-name = "Wasserwerk Großenkneten"
+id = 3
+lat = "52.9215506344584"
+lon = "7.8885451695358"
+name = "WW Thülsfelde"
 
 [[locations]]
-lat = 53.6005134
-lon = 7.5953426
-name = "Wasserwerk Harlingerland"
+id = 4
+lat = "52.8790998905981"
+lon = "8.45035028758815"
+name = "WW Wildeshausen"
 
 [[locations]]
-lat = 52.8969274
-lon = 8.6158132
-name = "Wasserwerk Harpstedt"
+id = 5
+lat = "53.5244387266223"
+lon = "7.81578710857597"
+name = "WW Sandelermöns"
 
 [[locations]]
-lat = 52.5659253
-lon = 8.103196
-name = "Wasserwerk Holdorf"
+id = 6
+lat = "52.8969873271758"
+lon = "8.61699040555089"
+name = "WW Harpstedt"
 
 [[locations]]
-lat = 53.75096
-lon = 7.5031164
-name = "Wasserwerk Langeoog"
+id = 7
+lat = "53.7740791360422"
+lon = "7.69106088074338"
+name = "WW Spiekeroog"
 
 [[locations]]
-lat = 53.496342
-lon = 7.2999953
-name = "Wasserwerk Marienhafe"
+id = 8
+lat = "53.7507358893537"
+lon = "7.50446468713387"
+name = "WW Langeoog"
 
 [[locations]]
-lat = 53.2720647
-lon = 8.1360754
-name = "Wasserwerk Nethen"
+id = 9
+lat = "53.270912255884"
+lon = "8.1387013567015"
+name = "WW Nethen"
 
 [[locations]]
-lat = 53.522369
-lon = 7.8332808
-name = "Wasserwerk Sandelermöns"
+id = 10
+lat = "53.2682197376541"
+lon = "7.93049660000118"
+name = "WW Westerstede"
 
 [[locations]]
-lat = 53.7739455
-lon = 7.6907031
-name = "Wasserwerk Spiekeroog"
+id = 11
+lat = "53.0456615551449"
+lon = "8.24148638049679"
+name = "KA Sandkrug"
 
 [[locations]]
-lat = 52.9211309
-lon = 7.8883566
-name = "Wasserwerk Thülsfelde"
+id = 12
+lat = "53.409307782087"
+lon = "8.1509370491339"
+name = "KA Varel"
 
 [[locations]]
-lat = 53.791442
-lon = 7.9067271
-name = "Wasserwerk Wangerooge"
+id = 13
+lat = "53.1441085564351"
+lon = "8.24477654478718"
+name = "KA Oldenburg"
 
 [[locations]]
-lat = 53.2668251
-lon = 7.935013
-name = "Wasserwerk Westerstede"
+id = 14
+lat = "53.2546450784768"
+lon = "8.46266617322496"
+name = "KA Elsfleth"
 
 [[locations]]
-lat = 52.8794732
-lon = 8.4479051
-name = "Wasserwerk Wildeshausen"
+id = 15
+lat = "53.5915064908427"
+lon = "8.25507313075528"
+name = "KA Tossens"
 
 [[locations]]
-lat = 52.721792
-lon = 8.286841
-name = "Kay SWAT"
+id = 16
+lat = "52.8016216544767"
+lon = "8.65724011745005"
+name = "KA Twistringen"
+
+[[locations]]
+id = 17
+lat = "53.0781065602791"
+lon = "7.69849046389667"
+name = "KA Scharrel"
+
+[[locations]]
+id = 18
+lat = "52.7371281307386"
+lon = "8.1946433240326"
+name = "KA Bakum"
+
+[[locations]]
+id = 19
+lat = "53.1474995018125"
+lon = "8.22272235903491"
+name = "Oldenburg TAZ"
+
+[[locations]]
+id = 20
+lat = "53.1732012103797"
+lon = "8.16571960769025"
+name = "Oldenburg Nord"
+
+[[locations]]
+id = 21
+lat = "53.1134764203036"
+lon = "8.20667752006836"
+name = "Oldenburg Süd"
+
+[[locations]]
+id = 22
+lat = "53.3682414494697"
+lon = "8.52221119279939"
+name = "KA Sandstedt"
+
+[[locations]]
+id = 23
+lat = "53.3902707590639"
+lon = "7.36552981658863"
+name = "KA Riepe"
+
+[[locations]]
+id = 24
+lat = "53.6009232513368"
+lon = "7.59752320668891"
+name = "WW Harlingerland"
+
+[[locations]]
+id = 25
+lat = "52.5656437661404"
+lon = "8.10380756236475"
+name = "WW Holdorf"
+
+[[locations]]
+id = 26
+lat = "53.4575534823753"
+lon = "7.53554350090045"
+name = "WW Aurich"
+
+[[locations]]
+id = 27
+lat = "53.326397964644"
+lon = "8.47113412487183"
+name = "EWE Brake"
