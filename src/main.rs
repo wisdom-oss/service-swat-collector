@@ -1,4 +1,4 @@
-use crate::locations::Location;
+use crate::locations::{Location, RequestLocationError};
 use crate::webhook::Webhook;
 use chrono::NaiveDateTime;
 use futures::stream;
@@ -50,7 +50,14 @@ async fn main() {
         for location in locations::LOCATIONS.locations.iter() {
             if let Err(err) = handle_location(location, &reqwest_client, &influxdb_client).await {
                 let datetime = chrono::Utc::now().format("%Y-%m-%d %H:%M");
-                eprintln!("ERROR [{datetime}]: {err}");
+                type HLE = HandleLocationError;
+                type RLE = RequestLocationError;
+                match &err {
+                    HLE::RequestForecast(RLE::Parse { error, from }) => {
+                        println!("ERROR [{datetime}]: {error}, original text:\n{from}");
+                    }
+                    _ => eprintln!("ERROR [{datetime}]: {err}"),
+                }
                 let _ = webhook.execute(location, err).await;
             }
         }
@@ -86,12 +93,15 @@ async fn init_bucket(client: &influxdb2::Client, org: String) {
             .await
             .unwrap();
     }
+
+    let datetime = chrono::Utc::now().format("%Y-%m-%d %H:%M");
+    eprintln!("INFO  [{datetime}]: initialized bucket {BUCKET_NAME:?}, swat-collector running");
 }
 
 #[derive(Debug, Error)]
 enum HandleLocationError {
     #[error("forecast request failed, {0}")]
-    RequestForecast(#[from] reqwest::Error),
+    RequestForecast(#[from] RequestLocationError),
 
     #[error("parsing `from` timestamp failed, {0}")]
     ParseFromTimestamp(#[from] chrono::format::ParseError),
@@ -132,14 +142,11 @@ async fn handle_location(
         .write_with_precision(BUCKET_NAME, stream::iter(iter::once(data_point)), precision)
         .await?;
 
-    #[cfg(debug_assertions)]
-    {
-        let datetime = chrono::Utc::now().format("%Y-%m-%d %H:%M");
-        eprintln!(
-            "DEBUG [{datetime}]: inserted location {:?} into db for {}",
-            location.name, forecast.from
-        );
-    }
+    let datetime = chrono::Utc::now().format("%Y-%m-%d %H:%M");
+    eprintln!(
+        "INFO  [{datetime}]: inserted location {:?} into db for {}",
+        location.name, forecast.from
+    );
 
     Ok(())
 }

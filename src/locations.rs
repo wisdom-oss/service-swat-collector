@@ -3,6 +3,7 @@ use serde::de::Error;
 use serde::{Deserialize, Deserializer};
 use static_toml::static_toml;
 use std::collections::BTreeMap;
+use thiserror::Error;
 
 static_toml! {
     #[static_toml(values_ident = Location)]
@@ -42,11 +43,23 @@ where
     Ok(entry)
 }
 
+#[derive(Debug, Error)]
+pub enum RequestLocationError {
+    #[error("request failed, {0}")]
+    Request(#[from] reqwest::Error),
+
+    #[error("parsing failed, {error}")]
+    Parse {
+        error: serde_json::Error,
+        from: String,
+    },
+}
+
 impl Location {
     pub async fn request_forecast(
         &self,
         client: &ReqwestClient,
-    ) -> Result<Forecast, reqwest::Error> {
+    ) -> Result<Forecast, RequestLocationError> {
         let Location { lat, lon, .. } = self;
 
         let response = client
@@ -56,7 +69,14 @@ impl Location {
             .send()
             .await?;
 
-        let forecast: Forecast = response.json().await?;
-        Ok(forecast)
+        let text = response.text().await?;
+
+        match serde_json::from_str(&text) {
+            Ok(forecast) => Ok(forecast),
+            Err(err) => Err(RequestLocationError::Parse {
+                error: err,
+                from: text,
+            }),
+        }
     }
 }
