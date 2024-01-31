@@ -1,5 +1,5 @@
 [package]
-name = "swat-accumulator"
+name = "swat-collector"
 version = "0.1.0"
 edition = "2021"
 
@@ -53,3 +53,5 @@ version = "0.4"
 
 [dependencies.futures]
 version = "0.3"
+[dependencies]
+log = "0.4.20"
