@@ -41,7 +41,7 @@ impl Webhook {
     ) -> Result<(), WebhookExecuteError> {
         let mut embed = EmbedBuilder::new()
             .color(0x9E2C2C)
-            .description("Some errors occurred.\nWe notify again when everything is green again.");
+            .description("Some errors occurred.\nAs soon as all requests are successful again you will be notified.");
 
         for field in errors.iter().take(FIELD_COUNT).map(|(location, error)| {
             EmbedFieldBuilder::new(location.name, error.to_string()).build()
