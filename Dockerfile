@@ -16,7 +16,7 @@ COPY . /build
 RUN cargo build --release --locked
 
 FROM alpine:latest
-COPY --from=build-service /build/target/release/swat-accumulator /swat-accumulator
-ENTRYPOINT ["/swat-accumulator"]
-LABEL org.opencontainers.image.source=https://github.com/wisdom-oss/service-swat-accumulator
+COPY --from=build-service /build/target/release/swat-collector /swat-collector
+ENTRYPOINT ["/swat-collector"]
+LABEL org.opencontainers.image.source=https://github.com/wisdom-oss/service-swat-collector
 # TODO: when this should handle request, this needs an exposed port
