@@ -55,7 +55,7 @@ impl Webhook {
     pub async fn resolved(&self) -> Result<(), WebhookExecuteError> {
         let embed = EmbedBuilder::new()
             .color(0x57F287)
-            .description("Every request was successful.");
+            .description("All requests have been successful. Collector working as expected again.");
         self.execute_embed_webhook(embed.build()).await
     }
 
