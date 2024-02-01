@@ -1428,12 +1428,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "swat-accumulator"
+name = "swat-collector"
 version = "0.1.0"
 dependencies = [
  "chrono",
  "futures",
  "influxdb2",
+ "log",
  "reqwest",
  "serde",
  "serde_json",
