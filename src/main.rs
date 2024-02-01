@@ -7,6 +7,7 @@ use influxdb2::api::organization::ListOrganizationRequest;
 use influxdb2::api::write::TimestampPrecision;
 use influxdb2::models::data_point::DataPointError;
 use influxdb2::models::{DataPoint, PostBucketRequest};
+use log::error;
 use std::collections::BTreeMap;
 use std::str::FromStr;
 use std::{env, iter};
@@ -43,24 +44,20 @@ async fn main() {
 
     init_bucket(&influxdb_client, influxdb_org).await;
 
+    let mut errors_reported = false;
     let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(120));
     loop {
         interval.tick().await;
+        let locations = &locations::LOCATIONS.locations;
 
-        for location in locations::LOCATIONS.locations.iter() {
+        let mut errors = Vec::with_capacity(locations.len());
+        for location in locations.iter() {
             if let Err(err) = handle_location(location, &reqwest_client, &influxdb_client).await {
-                let datetime = chrono::Utc::now().format("%Y-%m-%d %H:%M");
-                type HLE = HandleLocationError;
-                type RLE = RequestLocationError;
-                match &err {
-                    HLE::RequestForecast(RLE::Parse { error, from }) => {
-                        println!("ERROR [{datetime}]: {error}, original text:\n{from}");
-                    }
-                    _ => eprintln!("ERROR [{datetime}]: {err}"),
-                }
-                let _ = webhook.execute(location, err).await;
+                handle_location_error(location, err, &mut errors);
             }
         }
+
+        handle_location_errors(errors.as_slice(), &mut errors_reported, &webhook).await;
     }
 }
 
@@ -150,4 +147,42 @@ async fn handle_location(
     );
 
     Ok(())
+}
+
+fn handle_location_error<'l>(
+    location: &'l Location,
+    error: HandleLocationError,
+    errors: &mut Vec<(&'l Location, HandleLocationError)>,
+) {
+    let datetime = chrono::Utc::now().format("%Y-%m-%d %H:%M");
+    type HLE = HandleLocationError;
+    type RLE = RequestLocationError;
+    match &error {
+        HLE::RequestForecast(RLE::Parse { error, from }) => {
+            println!("ERROR [{datetime}]: {error}, original text:\n{from}");
+        }
+        error => eprintln!("ERROR [{datetime}]: {error}"),
+    }
+
+    errors.push((location, error));
+}
+
+async fn handle_location_errors(
+    errors: &[(&Location, HandleLocationError)],
+    errors_reported: &mut bool,
+    webhook: &Webhook,
+) {
+    match (errors.is_empty(), *errors_reported) {
+        (false, false) => {
+            if webhook.alert(errors).await.is_ok() {
+                *errors_reported = true;
+            }
+        }
+        (true, true) => {
+            if webhook.resolved().await.is_ok() {
+                *errors_reported = false;
+            }
+        }
+        _ => (),
+    }
 }

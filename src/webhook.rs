@@ -1,11 +1,14 @@
 use crate::locations::Location;
-use std::fmt::Display;
+use crate::HandleLocationError;
+
 use thiserror::Error;
 use twilight_http::client::Client as DiscordClient;
 use twilight_http::error::Error as HttpError;
+use twilight_model::channel::message::Embed;
 use twilight_model::id::marker::WebhookMarker;
 use twilight_model::id::Id;
-use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder};
+use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
+use twilight_validate::embed::FIELD_COUNT;
 use twilight_validate::message::MessageValidationError;
 
 pub struct Webhook {
@@ -32,17 +35,31 @@ impl Webhook {
         }
     }
 
-    pub async fn execute(
+    pub async fn alert(
         &self,
-        location: &Location,
-        content: impl Display,
+        errors: &[(&Location, HandleLocationError)],
     ) -> Result<(), WebhookExecuteError> {
-        let embed = EmbedBuilder::new()
-            .color(0x9e2c2c)
-            .author(EmbedAuthorBuilder::new(location.name).build())
-            .description(content.to_string())
-            .build();
+        let mut embed = EmbedBuilder::new()
+            .color(0x9E2C2C)
+            .description("Some errors occurred.\nAs soon as all requests are successful again you will be notified.");
 
+        for field in errors.iter().take(FIELD_COUNT).map(|(location, error)| {
+            EmbedFieldBuilder::new(location.name, error.to_string()).build()
+        }) {
+            embed = embed.field(field);
+        }
+
+        self.execute_embed_webhook(embed.build()).await
+    }
+
+    pub async fn resolved(&self) -> Result<(), WebhookExecuteError> {
+        let embed = EmbedBuilder::new()
+            .color(0x57F287)
+            .description("All requests have been successful. Collector working as expected again.");
+        self.execute_embed_webhook(embed.build()).await
+    }
+
+    pub async fn execute_embed_webhook(&self, embed: Embed) -> Result<(), WebhookExecuteError> {
         self.discord_client
             .execute_webhook(self.id, &self.token)
             .embeds(&[embed])?
