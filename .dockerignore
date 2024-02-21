@@ -1,1 +1,9 @@
+/.idea
+
+/.github
 /target
+
+.env
+.dockerignore
+docker-compose.yml
+Dockerfile
