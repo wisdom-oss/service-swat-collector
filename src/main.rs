@@ -1,6 +1,7 @@
 use crate::locations::{Location, RequestLocationError};
 use crate::webhook::Webhook;
 use chrono::NaiveDateTime;
+use clap::Parser;
 use futures::stream;
 use influxdb2::api::buckets::ListBucketsRequest;
 use influxdb2::api::organization::ListOrganizationRequest;
@@ -9,11 +10,14 @@ use influxdb2::models::data_point::DataPointError;
 use influxdb2::models::{DataPoint, PostBucketRequest};
 use log::error;
 use std::collections::BTreeMap;
+use std::process::ExitCode;
 use std::str::FromStr;
 use std::{env, iter};
 use thiserror::Error;
 use twilight_model::id::Id;
 
+#[cfg(feature = "health-check")]
+mod health_check;
 mod locations;
 mod webhook;
 
@@ -28,8 +32,29 @@ macro_rules! env {
     };
 }
 
+#[derive(Debug, Parser)]
+#[command(version)]
+pub struct Args {
+    /// Runs a health check when used, primarily for Docker to verify the application's status.
+    #[cfg(feature = "health-check")]
+    #[arg(long = "health-check")]
+    pub health_check: bool,
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> ExitCode {
+    #[cfg_attr(not(feature = "health-check"), allow(unused_variables))]
+    let args = Args::parse();
+
+    #[cfg(feature = "health-check")]
+    {
+        if args.health_check {
+            return health_check::check();
+        }
+
+        health_check::create().unwrap();
+    }
+
     let influxdb_url = env!("INFLUXDB_URL");
     let influxdb_org = env!("INFLUXDB_ORG");
     let influxdb_token = env!("INFLUXDB_TOKEN");
@@ -55,6 +80,11 @@ async fn main() {
             if let Err(err) = handle_location(location, &reqwest_client, &influxdb_client).await {
                 handle_location_error(location, err, &mut errors);
             }
+        }
+
+        #[cfg(feature = "health-check")]
+        if let Err(e) = health_check::touch() {
+            eprintln!("{e}");
         }
 
         handle_location_errors(errors.as_slice(), &mut errors_reported, &webhook).await;
