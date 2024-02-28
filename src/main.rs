@@ -49,10 +49,14 @@ async fn main() -> ExitCode {
     #[cfg(feature = "health-check")]
     {
         if args.health_check {
-            return health_check::check();
+            return health_check::check().await;
         }
 
-        health_check::create().unwrap();
+        tokio::spawn(async {
+            if let Err(e) = health_check::listen().await {
+                eprintln!("{e}");
+            }
+        });
     }
 
     let influxdb_url = env!("INFLUXDB_URL");
@@ -83,9 +87,7 @@ async fn main() -> ExitCode {
         }
 
         #[cfg(feature = "health-check")]
-        if let Err(e) = health_check::touch() {
-            eprintln!("{e}");
-        }
+        health_check::update();
 
         handle_location_errors(errors.as_slice(), &mut errors_reported, &webhook).await;
     }
