@@ -1,12 +1,26 @@
-use crate::health_check::{HEALTHY, HEALTHY_UPDATE_TIME, LAST_DB_WRITE, UNHEALTHY};
+use once_cell::sync::Lazy;
+use tokio::net::{UnixListener, UnixStream};
+use std::{fs, io};
 use std::path::Path;
 use std::process::ExitCode;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use std::{fs, io};
 use thiserror::Error;
-use tokio::net::{UnixListener, UnixStream};
+
+#[cfg(not(unix))]
+compile_error!("health checks are only available on unix systems");
+
+const HEALTHY: u8 = 0;
+const UNHEALTHY: u8 = 1;
+
+#[cfg(not(test))]
+const HEALTHY_UPDATE_TIME: Duration = Duration::from_secs(3 * 60);
+#[cfg(test)]
+const HEALTHY_UPDATE_TIME: Duration = Duration::from_secs(3);
 
 const HEALTH_CHECK_PATH: &str = "/tmp/wisdom/swat-collector.health.sock";
+
+static LAST_DB_WRITE: Lazy<parking_lot::Mutex<SystemTime>> =
+    Lazy::new(|| parking_lot::Mutex::from(UNIX_EPOCH));
 
 #[derive(Debug, Error)]
 pub enum HealthError {
@@ -69,6 +83,11 @@ async fn respond(stream: &UnixStream) -> Result<(), HealthError> {
     Ok(())
 }
 
+pub fn update() {
+    let mut guard = LAST_DB_WRITE.lock();
+    *guard = SystemTime::now();
+}
+
 pub async fn check() -> ExitCode {
     match check_impl().await {
         Ok(true) => HEALTHY,
@@ -98,4 +117,69 @@ async fn check_impl() -> Result<bool, HealthError> {
     };
     println!("last update was {} seconds ago", diff.as_secs());
     Ok(diff < HEALTHY_UPDATE_TIME)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::health_check;
+
+    trait TestExitCode {
+        // Panics if assertion fails.
+        fn assert(&self, code: u8, line: u32);
+    }
+
+    impl TestExitCode for ExitCode {
+        fn assert(&self, code: u8, line: u32) {
+            let self_dbg = format!("{:?}", self);
+            let code_dbg = format!("{:?}", ExitCode::from(code));
+            if self_dbg != code_dbg {
+                panic!("ExitCode was not {code:?} at {}:{line:?}", file!());
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn health_check() {
+        // there is no server, so the service is unhealthy
+        check().await.assert(UNHEALTHY, line!());
+
+        tokio::spawn(async {
+            if let Err(e) = health_check::listen().await {
+                panic!("{e}");
+            }
+        });
+
+        // unhealthy by default
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        check().await.assert(UNHEALTHY, line!());
+
+        // after an update the service is healthy
+        update();
+        check().await.assert(HEALTHY, line!());
+
+        // not updating for half the update time should be fine
+        tokio::time::sleep(HEALTHY_UPDATE_TIME / 2).await;
+        check().await.assert(HEALTHY, line!());
+
+        // not updating for the other half is too long and unhealthy
+        tokio::time::sleep(HEALTHY_UPDATE_TIME / 2).await;
+        check().await.assert(UNHEALTHY, line!());
+
+        // updating again makes it healthy again
+        update();
+        check().await.assert(HEALTHY, line!());
+
+        // still healthy after some time
+        tokio::time::sleep(HEALTHY_UPDATE_TIME / 2).await;
+        check().await.assert(HEALTHY, line!());
+
+        // update again, we can wait a bit again next time
+        update();
+        check().await.assert(HEALTHY, line!());
+
+        // since previously updated, this wait should work
+        tokio::time::sleep(HEALTHY_UPDATE_TIME / 2).await;
+        check().await.assert(HEALTHY, line!());
+    }
 }
