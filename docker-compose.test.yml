@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  swat-influxdb:
+    image: influxdb:latest
+    volumes:
+      - swat-influx-data:/var/lib/influxdb2
+      - swat-influx-config:/etc/influxdb2
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: wisdom
+      DOCKER_INFLUXDB_INIT_PASSWORD: wisdom123
+      DOCKER_INFLUXDB_INIT_ORG: wisdom
+      DOCKER_INFLUXDB_INIT_BUCKET: swat
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: wisdom-admin
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086"]
+    networks:
+      - swat
+
+  swat-collector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: service-swat-collector
+    environment:
+      DISCORD_WEBHOOK_ID: 123
+      DISCORD_WEBHOOK_TOKEN:
+      INFLUXDB_URL: http://swat-influxdb:8086
+      INFLUXDB_ORG: wisdom
+      INFLUXDB_TOKEN: wisdom-admin
+    networks:
+      - swat
+    depends_on:
+      swat-influxdb:
+        condition: service_healthy
+
+networks:
+  swat:
+
+volumes:
+  swat-influx-data:
+  swat-influx-config:
