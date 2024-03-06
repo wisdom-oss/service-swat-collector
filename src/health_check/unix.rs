@@ -1,10 +1,9 @@
-use crate::health_check::{HEALTHY, LAST_DB_WRITE, UNHEALTHY};
-use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH};
-use std::{fs, io};
+use crate::health_check::{HEALTHY, HEALTHY_UPDATE_TIME, LAST_DB_WRITE, UNHEALTHY};
+use std::path::Path;
 use std::process::ExitCode;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{fs, io};
 use thiserror::Error;
-use tokio::io::AsyncReadExt;
 use tokio::net::{UnixListener, UnixStream};
 
 const HEALTH_CHECK_PATH: &str = "/tmp/wisdom/swat-collector.health.sock";
@@ -20,9 +19,6 @@ pub enum HealthError {
     #[error("could not check if the socket is ready, {0}")]
     SocketReady(#[source] io::Error),
 
-    #[error("socked closed")]
-    SocketClosed,
-
     #[error("an error occurred while reading from the socket, {0}")]
     ReadSocket(#[source] io::Error),
 
@@ -34,7 +30,8 @@ pub async fn listen() -> Result<(), HealthError> {
     let path = Path::new(HEALTH_CHECK_PATH);
     let dir = path.parent().expect("path has parent dir");
     fs::create_dir_all(dir).map_err(HealthError::Create)?;
-    let listener = UnixListener::bind(path).map_err(HealthError::ConnectSocket)?;
+    let _ = fs::remove_file(path);
+    let listener = UnixListener::bind(path).map_err(HealthError::Create)?;
     listen_loop(&listener).await?;
     unreachable!("listen never returns with Ok")
 }
@@ -80,11 +77,14 @@ pub async fn check() -> ExitCode {
             eprintln!("{e}");
             UNHEALTHY
         }
-    }.into()
+    }
+    .into()
 }
 
 async fn check_impl() -> Result<bool, HealthError> {
-    let stream = UnixStream::connect(HEALTH_CHECK_PATH).await.map_err(HealthError::ConnectSocket)?;
+    let stream = UnixStream::connect(HEALTH_CHECK_PATH)
+        .await
+        .map_err(HealthError::ConnectSocket)?;
     stream.writable().await.map_err(HealthError::SocketReady)?;
     stream.try_write(&[1]).map_err(HealthError::WriteSocket)?;
     stream.readable().await.map_err(HealthError::SocketReady)?;
@@ -93,9 +93,9 @@ async fn check_impl() -> Result<bool, HealthError> {
     let secs = u64::from_ne_bytes(buf);
     let time = SystemTime::UNIX_EPOCH + Duration::from_secs(secs);
     let Ok(diff) = time.elapsed() else {
-        // from the future, this is fine
+        println!("last update is from the future, this is fine");
         return Ok(true);
     };
     println!("last update was {} seconds ago", diff.as_secs());
-    Ok(diff < Duration::from_secs(3 * 60))
+    Ok(diff < HEALTHY_UPDATE_TIME)
 }

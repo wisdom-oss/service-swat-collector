@@ -32,6 +32,10 @@ version = "1"
 version = "1"
 features = ["full"]
 
+[dev-dependencies.tokio]
+version = "1"
+features = ["full", "test-util"]
+
 [dependencies.twilight-model]
 version = "0.15"
 
