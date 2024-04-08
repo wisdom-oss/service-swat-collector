@@ -153,7 +153,7 @@ async fn handle_location(
     let forecast = location.request_forecast(reqwest_client).await?;
 
     let timestamp = NaiveDateTime::parse_from_str(&forecast.from, "%Y-%m-%d %H:%M")?;
-    let timestamp = timestamp.timestamp();
+    let timestamp = timestamp.and_utc().timestamp();
     let precision = TimestampPrecision::Seconds;
 
     let current_json = serde_json::to_string(&BTreeMap::from([forecast.current]))?;
