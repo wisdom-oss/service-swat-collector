@@ -24,10 +24,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        RUST_BUILD_ARGS: "--no-default-features"
+    command: ["--unchecked-tls"]
     image: service-swat-collector
     environment:
-      DISCORD_WEBHOOK_ID: 123
-      DISCORD_WEBHOOK_TOKEN:
       INFLUXDB_URL: http://swat-influxdb:8086
       INFLUXDB_ORG: wisdom
       INFLUXDB_TOKEN: wisdom-admin

@@ -1,5 +1,4 @@
 use crate::locations::{Location, RequestLocationError};
-use crate::webhook::Webhook;
 use chrono::NaiveDateTime;
 use clap::Parser;
 use futures::stream;
@@ -10,14 +9,13 @@ use influxdb2::models::data_point::DataPointError;
 use influxdb2::models::{DataPoint, PostBucketRequest};
 use std::collections::BTreeMap;
 use std::process::ExitCode;
-use std::str::FromStr;
 use std::{env, iter};
 use thiserror::Error;
-use twilight_model::id::Id;
 
 #[cfg(feature = "health-check")]
 mod health_check;
 mod locations;
+#[cfg(feature = "discord-webhook")]
 mod webhook;
 
 const BUCKET_NAME: &str = "swat";
@@ -64,17 +62,28 @@ async fn main() -> ExitCode {
     let influxdb_url = env!("INFLUXDB_URL");
     let influxdb_org = env!("INFLUXDB_ORG");
     let influxdb_token = env!("INFLUXDB_TOKEN");
-    let webhook_token = env!("DISCORD_WEBHOOK_TOKEN");
-    let webhook_id = env!("DISCORD_WEBHOOK_ID");
-    let webhook_id = Id::from_str(&webhook_id).unwrap();
 
-    let webhook = Webhook::new(webhook_id, webhook_token);
-    let reqwest_client = reqwest::Client::new();
+    #[cfg(feature = "discord-webhook")]
+    let webhook = {
+        use std::str::FromStr;
+        use twilight_model::id::Id;
+
+        let token = env!("DISCORD_WEBHOOK_TOKEN");
+        let id = env!("DISCORD_WEBHOOK_ID");
+        let id = Id::from_str(&id).unwrap();
+        webhook::Webhook::new(id, token)
+    };
+
+    let reqwest_client = reqwest::Client::builder()
+        .tls_danger_accept_invalid_certs(args.unchecked_tls)
+        .build()
+        .unwrap();
     let influxdb_client =
         influxdb2::Client::new(influxdb_url, influxdb_org.clone(), influxdb_token);
 
     init_bucket(&influxdb_client, influxdb_org).await;
 
+    #[cfg(feature = "discord-webhook")]
     let mut errors_reported = false;
     let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(120));
     loop {
@@ -91,6 +100,7 @@ async fn main() -> ExitCode {
         #[cfg(feature = "health-check")]
         health_check::update();
 
+        #[cfg(feature = "discord-webhook")]
         handle_location_errors(errors.as_slice(), &mut errors_reported, &webhook).await;
     }
 }
@@ -201,10 +211,11 @@ fn handle_location_error<'l>(
     errors.push((location, error));
 }
 
+#[cfg(feature = "discord-webhook")]
 async fn handle_location_errors(
     errors: &[(&Location, HandleLocationError)],
     errors_reported: &mut bool,
-    webhook: &Webhook,
+    webhook: &webhook::Webhook,
 ) {
     match (errors.is_empty(), *errors_reported) {
         (false, false) => {

@@ -1,10 +1,10 @@
 use once_cell::sync::Lazy;
-use tokio::net::{UnixListener, UnixStream};
-use std::{fs, io};
 use std::path::Path;
 use std::process::ExitCode;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{fs, io};
 use thiserror::Error;
+use tokio::net::{UnixListener, UnixStream};
 
 #[cfg(not(unix))]
 compile_error!("health checks are only available on unix systems");
