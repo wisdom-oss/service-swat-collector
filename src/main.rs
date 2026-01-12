@@ -8,7 +8,6 @@ use influxdb2::api::organization::ListOrganizationRequest;
 use influxdb2::api::write::TimestampPrecision;
 use influxdb2::models::data_point::DataPointError;
 use influxdb2::models::{DataPoint, PostBucketRequest};
-use log::error;
 use std::collections::BTreeMap;
 use std::process::ExitCode;
 use std::str::FromStr;
@@ -39,6 +38,9 @@ pub struct Args {
     #[cfg(feature = "health-check")]
     #[arg(long = "health-check")]
     pub health_check: bool,
+
+    #[arg(long = "unchecked-tls")]
+    pub unchecked_tls: bool,
 }
 
 #[tokio::main]

@@ -14,6 +14,7 @@ static_toml! {
 pub use locations::locations::location::Location;
 
 #[derive(Debug, serde::Deserialize)]
+#[allow(unused)]
 pub struct Forecast {
     #[serde(rename(deserialize = "vorhersageZeit"))]
     pub from: String,
